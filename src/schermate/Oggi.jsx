@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { BLOCCHI, SETTIMANE, settimanaDi, previstoIl, giorniAllaGara, dateSettimana } from "../dati/piano.js";
 import { SCHEDE, SCHEDA_DEFAULT, ID_SCHEDE, seriePreviste } from "../dati/schede.js";
-import { caricoSettimanale, dec, dayKey, etichettaCorsa } from "../modello.js";
+import { caricoSettimanale, descriviCarico, dec, dayKey, etichettaCorsa } from "../modello.js";
 import { Anello } from "../componenti/base.jsx";
 
 /**
@@ -128,13 +128,7 @@ export default function Oggi({ data, onStartForza, onCorsa, onAltro, onScegliSch
               {carico.totale}
               <span className="unit">carico</span>
             </p>
-            <p className="body muted">
-              {carico.media4 === null
-                ? "Serve qualche settimana per avere un confronto"
-                : carico.delta === 0
-                ? "In linea con le ultime quattro settimane"
-                : `${carico.delta > 0 ? "+" : ""}${carico.delta}% sulla media delle ultime 4`}
-            </p>
+            <p className="body muted">{descriviCarico(carico)}</p>
           </div>
           <Anello fatto={palestraFatte + corseFatte} totale={data.obiettivoPalestra + corsePreviste} size={62} />
         </div>

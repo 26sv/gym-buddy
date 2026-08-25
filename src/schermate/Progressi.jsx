@@ -2,7 +2,7 @@ import React, { useState, useMemo, Suspense, lazy } from "react";
 import { ESERCIZI, esercizio, haCarico } from "../dati/esercizi.js";
 import { settimanaDi, previstoSettimana, BLOCCHI } from "../dati/piano.js";
 import {
-  caricoSettimanale, calcolaRecord, dayLabel, dec, num, passo, startOfWeek,
+  caricoSettimanale, descriviCarico, calcolaRecord, dayLabel, dec, num, passo, startOfWeek,
   serieDi, caricoMax, volumeDi, eserciziUsati, dayKey,
 } from "../modello.js";
 import { Vuoto } from "../componenti/base.jsx";
@@ -94,12 +94,7 @@ function Carico({ data, onSoglia }) {
           non solo in un posto.
         </p>
 
-        {c.delta !== null && (
-          <p className={c.allarme ? "body" : "body muted"}>
-            {c.delta > 0 ? "+" : ""}
-            {c.delta}% sulla media delle ultime quattro settimane.
-          </p>
-        )}
+        <p className={c.allarme ? "body" : "body muted"}>{descriviCarico(c)}.</p>
 
         {c.allarme && (
           <div className="avviso">
@@ -368,6 +363,8 @@ function Corse({ data }) {
               chiave={metrica}
               colore="#35C4F0"
               formato={(v) => (metrica === "km" ? [`${dec(v)} km`, "Distanza"] : [`${passo(v)}/km`, "Passo medio"])}
+              /* il passo sull'asse va letto come 6:42, non come 402 secondi */
+              formatoAsse={metrica === "passo" ? (v) => passo(v) : undefined}
             />
           </Suspense>
         ) : (

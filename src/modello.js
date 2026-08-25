@@ -281,6 +281,14 @@ export function migraStato(v1) {
 
 /* ---------------- carico settimanale unificato ---------------- */
 
+const GIORNO_MS = 24 * 3600 * 1000;
+
+const mezzanotteDi = (d) => {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+};
+
 const inSettimana = (sessioni, lunedi) => {
   const fine = new Date(lunedi);
   fine.setDate(fine.getDate() + 7);
@@ -326,10 +334,20 @@ export function caricoSettimanale(sessioni, riferimento = new Date(), soglia = 1
   const totale = somma(corrente);
   const delta = media4 ? Math.round(((totale - media4) / media4) * 100) : null;
 
+  /* Una settimana iniziata martedì confrontata con quattro settimane intere dà
+     sempre un meno enorme che non vuol dire niente. Il segno più invece è vero
+     in qualunque giorno: se sei già sopra la media di mercoledì, sei sopra. */
+  const giorniTrascorsi = Math.min(
+    7,
+    Math.floor((mezzanotteDi(riferimento) - lunedi) / GIORNO_MS) + 1
+  );
+
   return {
     totale,
     media4: media4 !== null ? Math.round(media4) : null,
     delta,
+    giorniTrascorsi,
+    parziale: giorniTrascorsi < 7,
     allarme: delta !== null && delta > soglia,
     sessioni: corrente,
     perTipo: {
@@ -340,6 +358,26 @@ export function caricoSettimanale(sessioni, riferimento = new Date(), soglia = 1
     kmCorsa: corrente.reduce((t, s) => t + (s.corsa?.distanzaKm || 0), 0),
     settimane: [...precedenti].reverse().map(somma).concat(totale),
   };
+}
+
+/**
+ * Come si racconta il carico della settimana, in una riga.
+ *
+ * Il confronto in percentuale si dà solo quando dice qualcosa: a settimana
+ * chiusa, oppure quando si è già sopra la media, che è vero in qualunque
+ * giorno. A metà settimana e sotto la media si dice il totale e basta, invece
+ * di sventolare un meno che dipende solo da quanti giorni sono passati.
+ */
+export function descriviCarico(c) {
+  if (c.media4 === null) return "Serve qualche settimana per avere un confronto";
+  if (c.delta > 0) return `${c.delta}% sopra la media delle ultime quattro settimane`;
+  if (!c.parziale) {
+    return c.delta === 0
+      ? "In linea con le ultime quattro settimane"
+      : `${Math.abs(c.delta)}% sotto la media delle ultime quattro settimane`;
+  }
+  const giorni = c.giorniTrascorsi === 1 ? "un giorno" : `${c.giorniTrascorsi} giorni`;
+  return `${c.totale} in ${giorni}, contro una media di ${c.media4} a settimana`;
 }
 
 /* ---------------- record personali ---------------- */

@@ -5,6 +5,7 @@ import {
   migraStato, migraSessione, caricoDi, caricoSettimanale, calcolaRecord,
   recordBattuti, confronto, precedenteConfrontabile, nuovaCorsa, chiudiForza,
   nuovaForza, serieDi, serieTotali, volumeDi, massimaleStimato, passo, VERSIONE,
+  descriviCarico,
 } from "../src/modello.js";
 import { esportaCSV, leggiBackup, unisci } from "../src/storage.js";
 import { settimanaDi, previstoIl, giorniAllaGara, dateSettimana, SETTIMANE, PIANO } from "../src/dati/piano.js";
@@ -405,4 +406,54 @@ test("l'unione riporta indietro le sessioni che mancano", () => {
   const out = unisci(attuale, backup);
   assert.equal(out.sessioni.length, 2);
   assert.equal(out.sessioni[0].tipo, "forza", "restano in ordine, la più recente in testa");
+});
+
+/* ---------------- come si racconta il carico ---------------- */
+
+test("a metà settimana non si sventola un meno che dipende dai giorni passati", () => {
+  const martedi = new Date("2026-09-15T09:00:00");
+  const passate = [];
+  for (let i = 1; i <= 4; i++) {
+    const d = new Date("2026-09-08T18:00:00");
+    d.setDate(d.getDate() - 7 * (i - 1));
+    passate.push(sessione(d.toISOString(), "corsa", 100, 4)); // 400 a settimana
+  }
+  const c = caricoSettimanale([sessione("2026-09-14T18:00:00", "corsa", 30, 2), ...passate], martedi, 10);
+  assert.equal(c.parziale, true);
+  assert.equal(c.giorniTrascorsi, 2);
+  assert.match(descriviCarico(c), /contro una media di/);
+  assert.doesNotMatch(descriviCarico(c), /sotto la media/);
+});
+
+test("il segno più invece è vero in qualunque giorno e si dice", () => {
+  const martedi = new Date("2026-09-15T09:00:00");
+  const passate = [];
+  for (let i = 1; i <= 4; i++) {
+    const d = new Date("2026-09-08T18:00:00");
+    d.setDate(d.getDate() - 7 * (i - 1));
+    passate.push(sessione(d.toISOString(), "corsa", 50, 2)); // 100 a settimana
+  }
+  const c = caricoSettimanale([sessione("2026-09-14T18:00:00", "corsa", 60, 3), ...passate], martedi, 10);
+  assert.equal(c.parziale, true);
+  assert.equal(c.allarme, true);
+  assert.match(descriviCarico(c), /sopra la media/);
+});
+
+test("a settimana chiusa il meno si dice eccome", () => {
+  const domenica = new Date("2026-09-20T22:00:00");
+  const passate = [];
+  for (let i = 1; i <= 4; i++) {
+    const d = new Date("2026-09-13T18:00:00");
+    d.setDate(d.getDate() - 7 * (i - 1));
+    passate.push(sessione(d.toISOString(), "corsa", 100, 4)); // 400 a settimana
+  }
+  const c = caricoSettimanale([sessione("2026-09-19T18:00:00", "corsa", 50, 4), ...passate], domenica, 10);
+  assert.equal(c.parziale, false);
+  assert.equal(c.giorniTrascorsi, 7);
+  assert.match(descriviCarico(c), /50% sotto la media/);
+});
+
+test("senza storico non si racconta nessun confronto", () => {
+  const c = caricoSettimanale([sessione("2026-09-14T18:00:00", "forza", 60, 3)], new Date("2026-09-15T09:00:00"), 10);
+  assert.match(descriviCarico(c), /Serve qualche settimana/);
 });
