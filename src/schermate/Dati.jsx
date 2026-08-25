@@ -88,6 +88,18 @@ export default function Dati({ data, onRinomina, onImporta, onObiettivo, onBacku
 
   const sedute = giornoAperto ? perGiorno[giornoAperto] || [] : [];
 
+  /* Il file può anche non partire: il visualizzatore chiede conferma e si può
+     dire di no. Si riporta quello che è successo davvero, non un "fatto" secco. */
+  const salva = async (nome, contenuto, mime, conferma, poi) => {
+    const esitoSalvataggio = await scarica(nome, contenuto, mime);
+    if (esitoSalvataggio.ok) {
+      if (poi) poi();
+      setEsito({ ok: true, testo: conferma });
+    } else {
+      setEsito({ ok: false, testo: esitoSalvataggio.motivo });
+    }
+  };
+
   const importa = async (file) => {
     try {
       const stato = leggiBackup(await file.text());
@@ -317,30 +329,27 @@ export default function Dati({ data, onRinomina, onImporta, onObiettivo, onBacku
         <div className="navrow spaced">
           <button
             className="btn btn-line"
-            onClick={() => {
-              scarica(nomeBackup("json"), esportaJSON(data));
-              onBackupFatto();
-              setEsito({ ok: true, testo: "Backup JSON scaricato." });
-            }}
+            onClick={() => salva(nomeBackup("json"), esportaJSON(data), "application/json", "Backup JSON salvato.", onBackupFatto)}
           >
             Backup JSON
           </button>
           <button
             className="btn btn-line"
-            onClick={() => {
-              scarica(nomeBackup("csv"), esportaCSV(data.sessioni), "text/csv");
-              setEsito({ ok: true, testo: "CSV delle sessioni scaricato." });
-            }}
+            onClick={() => salva(nomeBackup("csv"), esportaCSV(data.sessioni), "text/csv", "CSV delle sessioni salvato.")}
           >
             CSV sessioni
           </button>
         </div>
         <button
           className="btn btn-line"
-          onClick={() => {
-            scarica(`gymbuddy-serie-${new Date().toISOString().slice(0, 10)}.csv`, esportaSerieCSV(data.sessioni), "text/csv");
-            setEsito({ ok: true, testo: "CSV serie per serie scaricato." });
-          }}
+          onClick={() =>
+            salva(
+              `gymbuddy-serie-${new Date().toISOString().slice(0, 10)}.csv`,
+              esportaSerieCSV(data.sessioni),
+              "text/csv",
+              "CSV serie per serie salvato."
+            )
+          }
         >
           CSV serie per serie
         </button>

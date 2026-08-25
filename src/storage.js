@@ -143,17 +143,66 @@ export function esportaSerieCSV(sessioni) {
   return [testa.join(","), ...righe].join("\n");
 }
 
-/** Fa scaricare un file al telefono. Funziona anche con l'app installata. */
-export function scarica(nome, contenuto, mime = "application/json") {
-  const blob = new Blob([contenuto], { type: `${mime};charset=utf-8` });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = nome;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+/**
+ * Il salvataggio di un file passa da due strade.
+ *
+ * Normalmente basta un link con l'attributo download, che funziona anche con la
+ * PWA installata sul telefono. Ma quando l'app gira dentro una pagina pubblicata
+ * su claude.ai quel link è inerte per scelta del contenitore, e l'unico modo di
+ * consegnare un file è chiederlo al visualizzatore. Qui si prova prima quella
+ * strada e si ripiega sull'altra: una base di codice sola, che si adatta a dove
+ * si trova invece di avere due versioni da tenere allineate.
+ */
+let capacita;
+const chiediCapacita = () => {
+  if (!capacita) {
+    capacita =
+      typeof window !== "undefined" && window.claude?.use
+        ? Promise.resolve(window.claude.use("downloads")).catch(() => null)
+        : Promise.resolve(null);
+  }
+  return capacita;
+};
+/* Si scalda subito: quando arriva il tocco sul pulsante deve essere già pronta. */
+if (typeof window !== "undefined") chiediCapacita();
+
+const MOTIVI = {
+  declined: "Salvataggio annullato.",
+  extension_not_enabled: "Qui il CSV non si può salvare: usa il backup JSON.",
+  rejected_extension: "Questo tipo di file non è ammesso qui.",
+  too_large: "Il file è troppo grande per essere salvato da qui.",
+  rate_limited: "C'è già un salvataggio in corso, riprova tra un attimo.",
+};
+
+/**
+ * Consegna un file. Restituisce { ok } oppure { ok: false, motivo } con una
+ * frase già leggibile: chi chiama non deve conoscere i codici di errore.
+ */
+export async function scarica(nome, contenuto, mime = "application/json") {
+  const downloads = await chiediCapacita();
+  if (downloads) {
+    try {
+      await downloads.save({ filename: nome, data: contenuto });
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, motivo: MOTIVI[e?.code] || "Salvataggio non riuscito." };
+    }
+  }
+
+  try {
+    const blob = new Blob([contenuto], { type: `${mime};charset=utf-8` });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nome;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, motivo: "Salvataggio non riuscito." };
+  }
 }
 
 export const nomeBackup = (est) => `gymbuddy-${ISO_FILE()}.${est}`;
