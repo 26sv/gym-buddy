@@ -13,7 +13,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["icon.svg"],
+      includeAssets: ["icon.svg", "icon-180.png", "icon-192.png", "icon-512.png"],
       scope: base,
       manifest: {
         name: "GYM BUDDY",
@@ -26,11 +26,18 @@ export default defineConfig({
         scope: base,
         start_url: base,
         icons: [
+          /* L'SVG resta per Android/Chrome moderni; i PNG sono per Safari su
+             iPhone, che per l'icona della schermata Home non legge il manifest
+             per niente e vuole solo <link rel="apple-touch-icon"> in index.html
+             — ma un secondo lettore del manifest (o un Android più vecchio)
+             trova comunque una taglia raster valida qui. */
           { src: "icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any maskable" },
+          { src: "icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: "icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
         ],
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,svg,woff2}"],
+        globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\//,
