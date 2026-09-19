@@ -20,10 +20,10 @@ export default function Style() {
 .root {
   --nero:#000000; --ghisa:#0C0E11; --alto:#14171B; --bordo:#262A31; --fondo:#07080A;
   --gesso:#F7F5F0; --bronzo:#ABA69A; --spento:#3A3F47;
-  --piastra:#FF2D3E; --verde:#3FD37C; --ambra:#FFB627; --corsa:#35C4F0;
+  --piastra:#FF2D3E; --verde:#3FD37C; --ambra:#FFB627; --corsa:#35C4F0; --lavoro:#A78BFA;
   --forza:var(--piastra);
   position:relative; display:flex; flex-direction:column; height:100dvh; overflow:hidden;
-  background:var(--nero); color:var(--gesso);
+  background:var(--nero); color:var(--gesso); color-scheme:dark;
   font-family:'Space Grotesk',system-ui,sans-serif; letter-spacing:-.004em;
 }
 .root.center { align-items:center; justify-content:center; }
@@ -49,9 +49,11 @@ export default function Style() {
 .t-forza { color:var(--forza); }
 .t-corsa { color:var(--corsa); }
 .t-altro { color:var(--bronzo); }
+.t-lavoro { color:var(--lavoro); }
 .bg-forza { background:var(--forza); }
 .bg-corsa { background:var(--corsa); }
 .bg-altro { background:var(--bronzo); }
+.bg-lavoro { background:var(--lavoro); }
 
 .topbar { display:flex; align-items:center; justify-content:space-between; padding:13px 16px; border-bottom:1px solid var(--bordo); flex-shrink:0; transition:padding 200ms ease; }
 .topbar.shrunk { padding:7px 16px; }
@@ -105,11 +107,13 @@ export default function Style() {
 .badge { font-size:11px; color:var(--bronzo); border:1px solid var(--bordo); border-radius:999px; padding:4px 9px; white-space:nowrap; }
 .badge-corsa { color:var(--corsa); border-color:#1B4657; }
 .badge-forza { color:var(--piastra); border-color:#43222A; }
+.badge-lavoro { color:var(--lavoro); border-color:#392E57; }
 .pill { font-size:10.5px; padding:3px 8px; border-radius:999px; white-space:nowrap; }
 .pill-verde { background:rgba(63,211,124,.16); color:var(--verde); }
 .pill-ambra { background:rgba(255,182,39,.16); color:var(--ambra); }
 .pill-piastra { background:rgba(255,45,62,.16); color:var(--piastra); }
 .pill-corsa { background:rgba(53,196,240,.16); color:var(--corsa); }
+.pill-lavoro { background:rgba(167,139,250,.16); color:var(--lavoro); }
 
 .list { list-style:none; padding:0; margin:11px 0 0; display:flex; flex-direction:column; gap:8px; }
 .row { display:flex; justify-content:space-between; align-items:baseline; gap:12px; font-size:13.5px; }
@@ -204,6 +208,7 @@ export default function Style() {
 .chip { font-size:12px; padding:8px 11px; border-radius:999px; border:1px solid var(--bordo); color:var(--bronzo); }
 .chip-on { background:var(--gesso); color:var(--nero); border-color:var(--gesso); }
 .chip-on.chip-corsa { background:var(--corsa); border-color:var(--corsa); color:#04212C; }
+.chip-on.chip-lavoro { background:var(--lavoro); border-color:var(--lavoro); color:#1B1330; }
 .chip-x { color:var(--bronzo); padding:8px 12px; }
 
 /* fogli modali */
@@ -211,6 +216,7 @@ export default function Style() {
 .sheet-in { width:100%; max-height:92%; overflow-y:auto; background:var(--ghisa); border-top:2px solid var(--piastra); border-radius:20px 20px 0 0; padding:20px 18px 26px; }
 .sheet-in.corsa { border-top-color:var(--corsa); }
 .sheet-in.oro { border-top-color:var(--ambra); }
+.sheet-in.lavoro { border-top-color:var(--lavoro); }
 .sheet-piena { align-items:stretch; }
 .sheet-piena .sheet-in { max-height:100%; border-radius:0; border-top:none; padding-top:16px; }
 .record-line { font-size:12.5px; color:var(--ambra); margin:14px 0 0; }
@@ -314,12 +320,22 @@ export default function Style() {
 .cal-forza { background:var(--forza); border-color:var(--forza); color:#fff; font-weight:700; }
 .cal-corsa { background:var(--corsa); border-color:var(--corsa); color:#04212C; font-weight:700; }
 .cal-both { background:linear-gradient(135deg,var(--corsa) 50%,var(--forza) 50%); border-color:var(--forza); color:#fff; font-weight:700; }
+.cal-lezione { background:var(--lavoro); border-color:var(--lavoro); color:#1B1330; font-weight:700; }
+.cal-impegno { border-color:var(--lavoro); color:var(--lavoro); font-weight:700; }
 .cal-today { box-shadow:inset 0 0 0 2px var(--gesso); }
 .cal-open { outline:2px solid var(--gesso); outline-offset:2px; }
 .cal-legend { display:flex; align-items:center; gap:7px; margin-top:13px; font-size:10.5px; color:var(--bronzo); flex-wrap:wrap; }
 .cal-key { width:11px; height:11px; border-radius:4px; flex-shrink:0; margin-left:6px; }
 .cal-legend .cal-key:first-child { margin-left:0; }
 .cal-detail { margin-top:15px; padding-top:14px; border-top:1px solid var(--bordo); }
+
+/* calendario di lavoro: impegni e lezioni */
+.imp-check { display:flex; align-items:center; justify-content:center; width:48px; height:48px; flex:0 0 48px; border-radius:12px; }
+.imp-check:active { background:var(--alto); }
+.imp-body { flex:1; min-width:0; text-align:left; padding:6px 2px; }
+.imp-row { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--bordo); text-align:left; width:100%; min-height:48px; }
+.imp-row:last-child { border-bottom:none; }
+.imp-row .left { flex:1; min-width:0; }
 
 .flash { position:absolute; inset:0; pointer-events:none; box-shadow:inset 0 0 0 3px var(--gesso); opacity:.5; animation:fade 700ms ease forwards; z-index:15; }
 .flash-record { box-shadow:inset 0 0 0 3px var(--ambra); display:flex; align-items:center; justify-content:center; font-family:'Big Shoulders Display',sans-serif; font-size:52px; font-weight:800; color:var(--ambra); letter-spacing:.06em; text-transform:uppercase; animation:fade 1600ms ease forwards; }
