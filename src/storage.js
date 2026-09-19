@@ -242,11 +242,17 @@ export function unisci(attuale, importato) {
     if (e && e.ts && !energie.has(e.ts)) energie.set(e.ts, e);
   });
 
+  const impegniMap = new Map();
+  [...(importato.impegni || []), ...(attuale.impegni || [])].forEach((i) => {
+    if (i && i.id && !impegniMap.has(i.id)) impegniMap.set(i.id, i);
+  });
+
   return {
     ...attuale,
     userName: attuale.userName || importato.userName || null,
     sessioni,
     ultimiCarichi: { ...(importato.ultimiCarichi || {}), ...(attuale.ultimiCarichi || {}) },
     energyLog: [...energie.values()].sort((a, b) => new Date(b.ts) - new Date(a.ts)).slice(0, 400),
+    impegni: [...impegniMap.values()],
   };
 }

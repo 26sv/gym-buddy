@@ -39,6 +39,7 @@ export const statoVuoto = {
   obiettivoPalestra: 2, // il pavimento del piano: due sedute a settimana
   sogliaCarico: 10, // % di aumento settimanale oltre cui l'app alza la mano
   ultimoBackup: null, // { ts, sessioni }
+  impegni: [], // lezioni e altri impegni di lavoro, in nessun ordine particolare
 };
 
 /* ---------------- numeri e formati ---------------- */
@@ -633,4 +634,81 @@ export function eserciziUsati(sessioni) {
   sessioni.forEach((s) => (s.forza?.esercizi || []).forEach((e) => set.add(e.nomeId)));
   Object.keys(ESERCIZI).forEach((id) => set.add(id));
   return [...set];
+}
+
+/* ---------------- calendario di lavoro ---------------- */
+
+/**
+ * Impegni di lavoro: lezioni da tenere e altri appuntamenti professionali.
+ * Vivono a fianco delle sessioni invece che dentro il modello unificato, perché
+ * non sono allenamenti e non entrano nel carico: sono solo cose da non
+ * dimenticare e da preparare prima che arrivi il momento.
+ *
+ *   Impegno { id, data (YYYY-MM-DD), ora, titolo, luogo, tipo: "lezione" | "impegno",
+ *             note, pronto }
+ */
+
+export const TIPI_IMPEGNO = {
+  lezione: { label: "Lezione", corto: "Lezione" },
+  impegno: { label: "Impegno", corto: "Impegno" },
+};
+
+const nuovoIdImpegno = () => `i${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+
+export function nuovoImpegno({ id, data, ora, titolo, luogo, note, tipo, pronto }) {
+  return {
+    id: id || nuovoIdImpegno(),
+    data,
+    ora: ora || null,
+    titolo: (titolo || "").trim() || "Impegno",
+    luogo: (luogo || "").trim() || null,
+    note: (note || "").trim() || null,
+    tipo: tipo === "lezione" ? "lezione" : "impegno",
+    pronto: pronto || false,
+  };
+}
+
+/** Prima per data, poi per ora: chi non ha un orario va in coda alla sua giornata. */
+export const impegniOrdinati = (impegni) =>
+  [...impegni].sort((a, b) => `${a.data}T${a.ora || "23:59"}`.localeCompare(`${b.data}T${b.ora || "23:59"}`));
+
+export const impegniDelGiorno = (impegni, chiave) =>
+  impegniOrdinati(impegni.filter((i) => i.data === chiave));
+
+/** Ogni giorno che ha almeno un impegno, chiave usata dal calendario per colorare le celle. */
+export function giorniConImpegni(impegni) {
+  const m = {};
+  impegni.forEach((i) => {
+    (m[i.data] = m[i.data] || []).push(i);
+  });
+  return m;
+}
+
+/**
+ * I prossimi impegni da oggi in poi, entro un orizzonte breve: è la lista che
+ * serve per arrivare preparati, non l'intero calendario rovesciato addosso.
+ */
+export function prossimiImpegni(impegni, riferimento = new Date(), giorni = 14) {
+  const oggi = dayKey(riferimento);
+  const limite = new Date(riferimento);
+  limite.setDate(limite.getDate() + giorni);
+  const chiaveLimite = dayKey(limite);
+  return impegniOrdinati(impegni).filter((i) => i.data >= oggi && i.data <= chiaveLimite);
+}
+
+/** Quanti giorni separano una data (YYYY-MM-DD) dal riferimento: negativo se è già passata. */
+export function giorniA(chiave, riferimento = new Date()) {
+  const oggi = new Date(`${dayKey(riferimento)}T00:00:00`);
+  const quella = new Date(`${chiave}T00:00:00`);
+  return Math.round((quella - oggi) / GIORNO_MS);
+}
+
+/** "Oggi", "Domani", "Tra 4 giorni": il conto alla rovescia in una parola sola. */
+export function descriviGiorno(chiave, riferimento = new Date()) {
+  const d = giorniA(chiave, riferimento);
+  if (d === 0) return "Oggi";
+  if (d === 1) return "Domani";
+  if (d > 1) return `Tra ${d} giorni`;
+  if (d === -1) return "Ieri";
+  return `${Math.abs(d)} giorni fa`;
 }

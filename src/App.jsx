@@ -4,7 +4,7 @@ import { storage, migraDaFerro, KEY, KEY_V1, unisci } from "./storage.js";
 import {
   statoVuoto, migraStato, VERSIONE, clock, serieDi, serieTotali, volumeDi,
   nuovaForza, chiudiForza, nuovaCorsa, nuovaAltro, recordBattuti, confronto,
-  precedenteConfrontabile, dayKey,
+  precedenteConfrontabile, dayKey, nuovoImpegno,
 } from "./modello.js";
 import { SCHEDE, SCHEDA_DEFAULT, REST_PRESETS, seriePreviste } from "./dati/schede.js";
 import { preparaAudio, beep, buzz, programmaAvviso, annullaAvviso, chiediNotifiche } from "./timer.js";
@@ -15,6 +15,7 @@ import Corsa from "./schermate/Corsa.jsx";
 import Riepilogo from "./schermate/Riepilogo.jsx";
 import Esito from "./schermate/Esito.jsx";
 import Storico from "./schermate/Storico.jsx";
+import Calendario from "./schermate/Calendario.jsx";
 import Progressi from "./schermate/Progressi.jsx";
 import Dati from "./schermate/Dati.jsx";
 import Onboarding, { Energia } from "./schermate/Onboarding.jsx";
@@ -256,6 +257,29 @@ export default function App() {
     avvisa(`Backup unito: ${quante} sessioni lette.`, true);
   };
 
+  /* ---------------- calendario di lavoro ---------------- */
+
+  const salvaImpegno = (campi, idEsistente) => {
+    const impegni = data.impegni || [];
+    persist({
+      ...data,
+      impegni: idEsistente
+        ? impegni.map((i) => (i.id === idEsistente ? nuovoImpegno({ ...i, ...campi, id: idEsistente }) : i))
+        : [nuovoImpegno(campi), ...impegni],
+    });
+  };
+
+  const eliminaImpegno = (id) => {
+    persist({ ...data, impegni: (data.impegni || []).filter((i) => i.id !== id) });
+  };
+
+  const toggleProntoImpegno = (id) => {
+    persist({
+      ...data,
+      impegni: (data.impegni || []).map((i) => (i.id === id ? { ...i, pronto: !i.pronto } : i)),
+    });
+  };
+
   /* ---------------- render ---------------- */
 
   if (loading) {
@@ -355,6 +379,14 @@ export default function App() {
               onAltro={() => setManuale({ tipo: "altro", prefill: null })}
             />
           ))}
+        {tab === "calendario" && (
+          <Calendario
+            data={data}
+            onSalva={salvaImpegno}
+            onElimina={eliminaImpegno}
+            onTogglePronto={toggleProntoImpegno}
+          />
+        )}
         {tab === "progressi" && (
           <Progressi data={data} onSoglia={(v) => persist({ ...data, sogliaCarico: v })} />
         )}
@@ -458,6 +490,7 @@ export default function App() {
       <nav className="tabbar">
         {[
           ["oggi", "Oggi"],
+          ["calendario", "Lavoro"],
           ["storico", "Storico"],
           ["progressi", "Progressi"],
           ["dati", "Dati"],

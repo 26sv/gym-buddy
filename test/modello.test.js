@@ -5,7 +5,7 @@ import {
   migraStato, migraSessione, caricoDi, caricoSettimanale, calcolaRecord,
   recordBattuti, confronto, precedenteConfrontabile, nuovaCorsa, chiudiForza,
   nuovaForza, serieDi, serieTotali, volumeDi, massimaleStimato, passo, VERSIONE,
-  descriviCarico,
+  descriviCarico, nuovoImpegno, impegniDelGiorno, prossimiImpegni, giorniA, descriviGiorno,
 } from "../src/modello.js";
 import { esportaCSV, leggiBackup, unisci } from "../src/storage.js";
 import { settimanaDi, previstoIl, giorniAllaGara, dateSettimana, SETTIMANE, PIANO } from "../src/dati/piano.js";
@@ -456,4 +456,68 @@ test("a settimana chiusa il meno si dice eccome", () => {
 test("senza storico non si racconta nessun confronto", () => {
   const c = caricoSettimanale([sessione("2026-09-14T18:00:00", "forza", 60, 3)], new Date("2026-09-15T09:00:00"), 10);
   assert.match(descriviCarico(c), /Serve qualche settimana/);
+});
+
+/* ---------------- calendario di lavoro ---------------- */
+
+test("un impegno senza tipo diventa 'impegno', non 'lezione' per default", () => {
+  const i = nuovoImpegno({ data: "2026-09-22", titolo: "  Riunione  " });
+  assert.equal(i.tipo, "impegno");
+  assert.equal(i.titolo, "Riunione", "il titolo si ripulisce degli spazi");
+  assert.equal(i.pronto, false);
+  assert.ok(i.id);
+});
+
+test("un impegno senza titolo resta comunque salvabile", () => {
+  const i = nuovoImpegno({ data: "2026-09-22", tipo: "lezione" });
+  assert.equal(i.titolo, "Impegno");
+  assert.equal(i.tipo, "lezione");
+});
+
+test("impegniDelGiorno prende solo quel giorno e ordina per orario", () => {
+  const impegni = [
+    nuovoImpegno({ data: "2026-09-22", ora: "15:00", titolo: "Pomeriggio" }),
+    nuovoImpegno({ data: "2026-09-22", ora: "09:00", titolo: "Mattina" }),
+    nuovoImpegno({ data: "2026-09-23", ora: "09:00", titolo: "Domani" }),
+  ];
+  const del22 = impegniDelGiorno(impegni, "2026-09-22");
+  assert.equal(del22.length, 2);
+  assert.equal(del22[0].titolo, "Mattina");
+});
+
+test("prossimiImpegni tiene fuori il passato e quello troppo lontano", () => {
+  const oggi = new Date("2026-09-19T09:00:00");
+  const impegni = [
+    nuovoImpegno({ data: "2026-09-18", titolo: "Ieri" }),
+    nuovoImpegno({ data: "2026-09-19", titolo: "Oggi" }),
+    nuovoImpegno({ data: "2026-09-25", titolo: "Tra una settimana" }),
+    nuovoImpegno({ data: "2026-10-20", titolo: "Tra un mese" }),
+  ];
+  const prox = prossimiImpegni(impegni, oggi, 14);
+  assert.deepEqual(prox.map((i) => i.titolo), ["Oggi", "Tra una settimana"]);
+});
+
+test("il conto alla rovescia dei giorni segue il calendario, non le 24 ore esatte", () => {
+  const oggi = new Date("2026-09-19T22:00:00"); // tardi sera
+  assert.equal(giorniA("2026-09-20", oggi), 1, "anche partendo dalla sera, domani resta domani");
+  assert.equal(giorniA("2026-09-19", oggi), 0);
+  assert.equal(giorniA("2026-09-18", oggi), -1);
+});
+
+test("descriviGiorno traduce il conto alla rovescia in italiano", () => {
+  const oggi = new Date("2026-09-19T09:00:00");
+  assert.equal(descriviGiorno("2026-09-19", oggi), "Oggi");
+  assert.equal(descriviGiorno("2026-09-20", oggi), "Domani");
+  assert.equal(descriviGiorno("2026-09-23", oggi), "Tra 4 giorni");
+  assert.equal(descriviGiorno("2026-09-18", oggi), "Ieri");
+});
+
+test("l'unione dei backup riporta indietro anche gli impegni mancanti, senza duplicare quelli comuni", () => {
+  const comune = nuovoImpegno({ id: "i1", data: "2026-09-20", titolo: "Lezione comune" });
+  const soloNelBackup = nuovoImpegno({ id: "i2", data: "2026-09-21", titolo: "Solo nel backup" });
+  const attuale = { sessioni: [], energyLog: [], impegni: [comune] };
+  const backup = { sessioni: [], energyLog: [], impegni: [comune, soloNelBackup] };
+  const out = unisci(attuale, backup);
+  assert.equal(out.impegni.length, 2);
+  assert.ok(out.impegni.some((i) => i.id === "i2"));
 });

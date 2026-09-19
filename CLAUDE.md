@@ -45,10 +45,10 @@ src/
     schede.js          le schede di sala pesi (P, A, B) che citano quegli id
     scale.js           ENERGIA, SODDISFAZIONE, RPE, FEEL
     piano.js           le 24 settimane del piano mezza maratona
-  schermate/           Oggi, Forza, Corsa, Riepilogo, Esito, Storico, Progressi,
-                       Dati, Onboarding
+  schermate/           Oggi, Forza, Corsa, Riepilogo, Esito, Storico, Calendario,
+                       Progressi, Dati, Onboarding
   componenti/          base.jsx (anello, scale, stepper, confronto), Grafico.jsx
-test/modello.test.js   36 test sulle funzioni pure
+test/modello.test.js   47 test sulle funzioni pure
 public/icon.svg        icona PWA
 ```
 
@@ -128,6 +128,27 @@ settimana, mai quattro. Con il lungo di domenica e le discese di lunedì restano
 liberi martedì e giovedì per la sala pesi; è l'unica combinazione che li rispetta
 entrambi senza incastrare due sedute di palestra di fila. C'è un test che lo
 verifica.
+
+### Il calendario di lavoro
+
+La scheda **Lavoro** è un calendario a sé, fuori dal modello unificato: segna solo
+impegni professionali, in particolare le lezioni da tenere, non allenamenti.
+Serve ad arrivarci preparati, non a misurare niente, quindi non entra nel carico
+relativo né nello storico sportivo.
+
+Gli impegni vivono sotto `impegni` nello stesso stato `gymbuddy:diario-v2`, come
+array a sé:
+
+```js
+Impegno { id, data (YYYY-MM-DD), ora, titolo, luogo, tipo: "lezione" | "impegno",
+          note, pronto }
+```
+
+"Prossimi impegni" sta sopra la griglia mensile ed elenca i prossimi 14 giorni:
+è la lista da controllare prima di uscire, non l'intero mese da scorrere. Ogni
+riga ha una spunta "pronto" per segnare che il materiale è a posto — utile solo a
+chi la spunta, l'app non ne fa altro. Le lezioni hanno un colore proprio,
+`--lavoro` (viola), per non confondersi con `--corsa` e `--piastra`.
 
 ### Il carico relativo
 
